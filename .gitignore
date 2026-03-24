@@ -7,3 +7,5 @@ instance/
 data/sleep_entries.json
 flask.out.log
 flask.err.log
+flask-test.out.log
+flask-test.err.log

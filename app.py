@@ -16,6 +16,7 @@ except ImportError:
 BASE_DIR = Path(__file__).resolve().parent
 DATA_PATH = BASE_DIR / "data" / "sleep_entries.json"
 DATABASE_URL = os.environ.get("DATABASE_URL")
+POSTGRES_READY = False
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-key")
@@ -39,6 +40,7 @@ def get_db_connection():
 
 
 def init_postgres():
+    global POSTGRES_READY
     if not uses_postgres():
         return
 
@@ -67,6 +69,12 @@ def init_postgres():
                 ON sleep_entries (LOWER(name), entry_date)
                 """
             )
+    POSTGRES_READY = True
+
+
+def ensure_postgres_ready():
+    if uses_postgres() and not POSTGRES_READY:
+        init_postgres()
 
 
 def read_entries_from_json():
@@ -88,6 +96,7 @@ def write_entries_to_json(entries):
 
 
 def read_entries_from_postgres():
+    ensure_postgres_ready()
     with get_db_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(
@@ -112,7 +121,11 @@ def read_entries_from_postgres():
 
 def read_entries():
     if uses_postgres():
-        return read_entries_from_postgres()
+        try:
+            return read_entries_from_postgres()
+        except Exception:
+            app.logger.exception("Failed to read sleep entries from PostgreSQL.")
+            return []
     return read_entries_from_json()
 
 
@@ -146,6 +159,7 @@ def get_sorted_entries():
 
 def find_duplicate_entry(name, date):
     if uses_postgres():
+        ensure_postgres_ready()
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute(
@@ -173,6 +187,7 @@ def find_duplicate_entry(name, date):
 
 def add_entry_record(entry):
     if uses_postgres():
+        ensure_postgres_ready()
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute(
@@ -213,6 +228,7 @@ def add_entry_record(entry):
 
 def delete_entry_record(entry_id):
     if uses_postgres():
+        ensure_postgres_ready()
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute("DELETE FROM sleep_entries WHERE id = %s", (entry_id,))
@@ -225,6 +241,7 @@ def delete_entry_record(entry_id):
 
 def get_storage_status():
     if uses_postgres():
+        ensure_postgres_ready()
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute("SELECT 1 AS ok")
@@ -413,24 +430,29 @@ def add_entry():
         quality = infer_quality(duration)
         suggestion = build_sleep_suggestion(duration)
 
-        if find_duplicate_entry(name, date):
-            flash("An entry for this name and date already exists.", "error")
-            return redirect(url_for("add_entry"))
+        try:
+            if find_duplicate_entry(name, date):
+                flash("An entry for this name and date already exists.", "error")
+                return redirect(url_for("add_entry"))
 
-        add_entry_record(
-            {
-                "id": str(uuid.uuid4()),
-                "name": name,
-                "date": date,
-                "duration": duration,
-                "quality": quality,
-                "bedtime": bedtime,
-                "wake_time": wake_time,
-                "result_headline": suggestion["headline"],
-                "result_message": suggestion["message"],
-                "notes": "",
-            }
-        )
+            add_entry_record(
+                {
+                    "id": str(uuid.uuid4()),
+                    "name": name,
+                    "date": date,
+                    "duration": duration,
+                    "quality": quality,
+                    "bedtime": bedtime,
+                    "wake_time": wake_time,
+                    "result_headline": suggestion["headline"],
+                    "result_message": suggestion["message"],
+                    "notes": "",
+                }
+            )
+        except Exception:
+            app.logger.exception("Failed to save sleep entry.")
+            flash("Storage is unavailable right now. Please try again later.", "error")
+            return redirect(url_for("add_entry"))
         flash(
             "Sleep entry added for {}. Duration: {} hours. Result: {}.".format(
                 name, duration, suggestion["headline"]
@@ -444,7 +466,12 @@ def add_entry():
 
 @app.route("/delete/<entry_id>", methods=["POST"])
 def delete_entry(entry_id):
-    delete_entry_record(entry_id)
+    try:
+        delete_entry_record(entry_id)
+    except Exception:
+        app.logger.exception("Failed to delete sleep entry.")
+        flash("Storage is unavailable right now. Please try again later.", "error")
+        return redirect(url_for("home"))
     flash("Entry deleted.", "success")
     return redirect(url_for("home"))
 
@@ -534,10 +561,6 @@ def wellness():
         meditation_tips=meditation_tips,
         stress_tips=stress_tips,
     )
-
-
-init_postgres()
-
 
 if __name__ == "__main__":
     app.run(debug=True, use_reloader=False)
