@@ -23,8 +23,13 @@ def read_entries():
     DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
     if not DATA_PATH.exists():
         DATA_PATH.write_text("[]", encoding="utf-8")
-    with open(DATA_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open(DATA_PATH, "r", encoding="utf-8") as f:
+            entries = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        DATA_PATH.write_text("[]", encoding="utf-8")
+        return []
+    return entries if isinstance(entries, list) else []
 
 
 def write_entries(entries):
@@ -34,12 +39,15 @@ def write_entries(entries):
 
 def normalize_entry(entry):
     normalized = dict(entry)
+    normalized["id"] = entry.get("id", str(uuid.uuid4()))
     normalized["duration"] = float(entry.get("duration", 0) or 0)
     normalized["duration_percent"] = min(round((normalized["duration"] / 10) * 100, 1), 100)
     normalized["name"] = entry.get("name", "Guest")
+    normalized["date"] = entry.get("date", "")
     normalized["quality"] = entry.get("quality") or "Unrated"
     normalized["bedtime"] = entry.get("bedtime", "")
     normalized["wake_time"] = entry.get("wake_time", "")
+    normalized["notes"] = entry.get("notes", "")
     suggestion = build_sleep_suggestion(normalized["duration"])
     normalized["result_headline"] = entry.get("result_headline", suggestion["headline"])
     normalized["result_message"] = entry.get("result_message", suggestion["message"])
@@ -48,7 +56,7 @@ def normalize_entry(entry):
 
 def get_sorted_entries():
     entries = [normalize_entry(entry) for entry in read_entries()]
-    return sorted(entries, key=lambda item: item["date"], reverse=True)
+    return sorted(entries, key=lambda item: item.get("date", ""), reverse=True)
 
 
 def infer_quality(duration):
@@ -105,13 +113,16 @@ def build_quality_breakdown(entries):
 
 
 def calculate_streak(entries):
-    if not entries:
+    dates = []
+    for entry in entries:
+        try:
+            dates.append(datetime.fromisoformat(entry["date"]).date())
+        except (KeyError, TypeError, ValueError):
+            continue
+    if not dates:
         return 0
 
-    dates = sorted(
-        {datetime.fromisoformat(entry["date"]).date() for entry in entries},
-        reverse=True,
-    )
+    dates = sorted(set(dates), reverse=True)
     streak = 1
     for previous, current in zip(dates, dates[1:]):
         if previous - current == timedelta(days=1):
