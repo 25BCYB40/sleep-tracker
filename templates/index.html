@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}Sleep Tracker Dashboard{% endblock %}
+{% block content %}
+  <section class="hero">
+    <div>
+      <p class="eyebrow">Daily recovery dashboard</p>
+      <h1>Track your nights, spot patterns, and build a steadier sleep rhythm.</h1>
+      <p class="hero-copy">
+        Log duration, bedtime, wake time, and sleep quality in one place.
+        Your dashboard turns the raw entries into useful recovery insights.
+      </p>
+      <div class="hero-actions">
+        <a class="button" href="{{ url_for('add_entry') }}">Add tonight's sleep</a>
+        <a class="button button-secondary" href="{{ url_for('stats') }}">View insights</a>
+      </div>
+    </div>
+
+    <div class="hero-panel card">
+      <p>Latest night</p>
+      {% if metrics.latest %}
+        <strong>{{ metrics.latest.duration }} hrs</strong>
+        <span>{{ metrics.latest.date }}</span>
+        <small>{{ metrics.latest.quality }}</small>
+      {% else %}
+        <strong>No entries yet</strong>
+        <span>Start with your first sleep log</span>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="metric-grid">
+    <article class="card metric-card">
+      <span>Average sleep</span>
+      <strong>{{ metrics.avg_hours }} hrs</strong>
+      <small>{{ metrics.count }} total nights logged</small>
+    </article>
+    <article class="card metric-card">
+      <span>Consistency</span>
+      <strong>{{ metrics.consistency }}%</strong>
+      <small>{{ metrics.ideal_nights }} nights in the 7-9 hour range</small>
+    </article>
+    <article class="card metric-card">
+      <span>Current streak</span>
+      <strong>{{ metrics.streak }} days</strong>
+      <small>Consecutive days with entries</small>
+    </article>
+    <article class="card metric-card">
+      <span>Sleep quality</span>
+      <strong>{{ metrics.average_quality }}</strong>
+      <small>Average rating out of 4</small>
+    </article>
+  </section>
+
+  <section class="dashboard-grid">
+    <article class="card insight-card">
+      <h2>Weekly pulse</h2>
+      <p>{{ metrics.weekly_average }} hrs average across your last 7 logged nights.</p>
+      <div class="quality-bars">
+        {% for item in metrics.quality_breakdown %}
+          <div class="quality-row">
+            <span>{{ item.label }}</span>
+            <div class="bar-track">
+              <div class="bar-fill" style="width: {{ item.percent }}%"></div>
+            </div>
+            <strong>{{ item.value }}</strong>
+          </div>
+        {% endfor %}
+      </div>
+    </article>
+
+    <article class="card insight-card">
+      <h2>Recovery snapshot</h2>
+      <ul class="snapshot-list">
+        <li>Total sleep logged: <strong>{{ metrics.total_hours }} hours</strong></li>
+        <li>Recovery nights: <strong>{{ metrics.recovery_nights }}</strong> with 8+ hours</li>
+        <li>Best range nights: <strong>{{ metrics.ideal_nights }}</strong> between 7 and 9 hours</li>
+        <li>Focus tip: {% if metrics.avg_hours >= 7 %}You are close to a healthy baseline. Keep the routine steady.{% else %}Try adding 30-45 minutes to your target bedtime this week.{% endif %}</li>
+      </ul>
+    </article>
+  </section>
+
+  <section class="card table-card">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">Sleep log</p>
+        <h2>Recent entries</h2>
+      </div>
+      <div class="table-actions">
+        <form class="search-form" method="get" action="{{ url_for('home') }}">
+          <input type="text" name="name" value="{{ search_name or '' }}" placeholder="Search by name" />
+          <button type="submit">Search</button>
+          {% if search_name %}
+            <a class="button button-secondary" href="{{ url_for('home') }}">Clear</a>
+          {% endif %}
+        </form>
+        <a class="button button-secondary" href="{{ url_for('add_entry') }}">New entry</a>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Name</th>
+            <th>Duration</th>
+            <th>Quality</th>
+            <th>Schedule</th>
+            <th>Result</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for entry in entries %}
+            <tr>
+              <td>{{ entry.date }}</td>
+              <td>
+                <a class="result-link" href="{{ url_for('entry_result', entry_id=entry.id) }}">{{ entry.name }}</a>
+              </td>
+              <td>
+                <div class="duration-cell">
+                  <strong>{{ entry.duration }} hrs</strong>
+                  <div class="mini-track">
+                    <div class="mini-fill" style="width: {{ entry.duration_percent }}%"></div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="pill">{{ entry.quality }}</span></td>
+              <td>
+                {% if entry.bedtime or entry.wake_time %}
+                  {{ entry.bedtime or "--:--" }} to {{ entry.wake_time or "--:--" }}
+                {% else %}
+                  No time logged
+                {% endif %}
+              </td>
+              <td>
+                <strong class="result-title">{{ entry.result_headline }}</strong>
+                <small class="result-subtitle">{{ entry.result_message }}</small>
+              </td>
+              <td>
+                <form method="post" action="{{ url_for('delete_entry', entry_id=entry.id) }}" onsubmit="return confirm('Delete this entry?');">
+                  <button type="submit">Delete</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+          {% if not entries %}
+            <tr>
+              <td colspan="7" class="empty-state">No entries yet. Add your first sleep record to start the dashboard.</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

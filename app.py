@@ -1,0 +1,340 @@
+import os
+from flask import Flask, render_template, request, redirect, url_for, flash
+from datetime import datetime, timedelta
+from pathlib import Path
+import json
+import uuid
+
+BASE_DIR = Path(__file__).resolve().parent
+DATA_PATH = BASE_DIR / "data" / "sleep_entries.json"
+
+app = Flask(__name__)
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-key")
+
+QUALITY_SCORES = {
+    "Poor": 1,
+    "Fair": 2,
+    "Good": 3,
+    "Great": 4,
+}
+
+
+def read_entries():
+    DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
+    if not DATA_PATH.exists():
+        DATA_PATH.write_text("[]", encoding="utf-8")
+    with open(DATA_PATH, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def write_entries(entries):
+    with open(DATA_PATH, "w", encoding="utf-8") as f:
+        json.dump(entries, f, indent=2)
+
+
+def normalize_entry(entry):
+    normalized = dict(entry)
+    normalized["duration"] = float(entry.get("duration", 0) or 0)
+    normalized["duration_percent"] = min(round((normalized["duration"] / 10) * 100, 1), 100)
+    normalized["name"] = entry.get("name", "Guest")
+    normalized["quality"] = entry.get("quality") or "Unrated"
+    normalized["bedtime"] = entry.get("bedtime", "")
+    normalized["wake_time"] = entry.get("wake_time", "")
+    suggestion = build_sleep_suggestion(normalized["duration"])
+    normalized["result_headline"] = entry.get("result_headline", suggestion["headline"])
+    normalized["result_message"] = entry.get("result_message", suggestion["message"])
+    return normalized
+
+
+def get_sorted_entries():
+    entries = [normalize_entry(entry) for entry in read_entries()]
+    return sorted(entries, key=lambda item: item["date"], reverse=True)
+
+
+def infer_quality(duration):
+    if duration >= 8:
+        return "Great"
+    if duration >= 7:
+        return "Good"
+    if duration >= 6:
+        return "Fair"
+    return "Poor"
+
+
+def calculate_duration(bedtime, wake_time):
+    start = datetime.strptime(bedtime, "%H:%M")
+    end = datetime.strptime(wake_time, "%H:%M")
+    if end <= start:
+        end += timedelta(days=1)
+    return round((end - start).total_seconds() / 3600, 1)
+
+
+def build_sleep_suggestion(duration):
+    if duration >= 8:
+        return {
+            "headline": "Excellent recovery window",
+            "message": "You gave your body enough time to recover well. Keep protecting this routine with a steady bedtime and a calm wind-down.",
+        }
+    if duration >= 7:
+        return {
+            "headline": "Solid sleep result",
+            "message": "This is a healthy range for many people. Try to keep the same sleep and wake time so your routine stays consistent.",
+        }
+    if duration >= 6:
+        return {
+            "headline": "A fair night, but you could use more rest",
+            "message": "You slept some, but an extra hour could improve focus and energy. Try reducing late-night screen time or caffeine.",
+        }
+    return {
+        "headline": "Low sleep duration",
+        "message": "This was a short night. If possible, aim for an earlier bedtime tonight and keep the next evening calm and screen-light.",
+    }
+
+
+def build_quality_breakdown(entries):
+    counts = {"Great": 0, "Good": 0, "Fair": 0, "Poor": 0, "Unrated": 0}
+    for entry in entries:
+        counts[entry["quality"]] = counts.get(entry["quality"], 0) + 1
+    total = len(entries)
+    breakdown = []
+    for label in ["Great", "Good", "Fair", "Poor", "Unrated"]:
+        value = counts[label]
+        percent = round((value / total) * 100, 1) if total else 0
+        breakdown.append({"label": label, "value": value, "percent": percent})
+    return breakdown
+
+
+def calculate_streak(entries):
+    if not entries:
+        return 0
+
+    dates = sorted(
+        {datetime.fromisoformat(entry["date"]).date() for entry in entries},
+        reverse=True,
+    )
+    streak = 1
+    for previous, current in zip(dates, dates[1:]):
+        if previous - current == timedelta(days=1):
+            streak += 1
+        else:
+            break
+    return streak
+
+
+def build_dashboard_metrics(entries):
+    total_hours = round(sum(item["duration"] for item in entries), 1)
+    count = len(entries)
+    avg_hours = round(total_hours / count, 1) if count else 0
+    ideal_nights = sum(1 for item in entries if 7 <= item["duration"] <= 9)
+    recovery_nights = sum(1 for item in entries if item["duration"] >= 8)
+    latest = entries[0] if entries else None
+    recent_entries = entries[:7]
+    weekly_average = (
+        round(sum(item["duration"] for item in recent_entries) / len(recent_entries), 1)
+        if recent_entries
+        else 0
+    )
+
+    scored_entries = [QUALITY_SCORES[item["quality"]] for item in entries if item["quality"] in QUALITY_SCORES]
+    average_quality = round(sum(scored_entries) / len(scored_entries), 1) if scored_entries else 0
+    consistency = round((ideal_nights / count) * 100) if count else 0
+
+    return {
+        "total_hours": total_hours,
+        "avg_hours": avg_hours,
+        "count": count,
+        "ideal_nights": ideal_nights,
+        "recovery_nights": recovery_nights,
+        "latest": latest,
+        "weekly_average": weekly_average,
+        "average_quality": average_quality,
+        "consistency": consistency,
+        "streak": calculate_streak(entries),
+        "quality_breakdown": build_quality_breakdown(entries),
+    }
+
+
+@app.route("/")
+def home():
+    entries = get_sorted_entries()
+    search_name = request.args.get("name", "").strip()
+    filtered_entries = entries
+    if search_name:
+        search_text = search_name.lower()
+        filtered_entries = [
+            entry for entry in entries if search_text in entry["name"].lower()
+        ]
+
+    metrics = build_dashboard_metrics(filtered_entries)
+    return render_template(
+        "index.html",
+        entries=filtered_entries,
+        metrics=metrics,
+        search_name=search_name,
+    )
+
+
+@app.route("/add", methods=["GET", "POST"])
+def add_entry():
+    if request.method == "POST":
+        date = request.form.get("date")
+        name = request.form.get("name", "").strip()
+        bedtime = request.form.get("bedtime", "")
+        wake_time = request.form.get("wake_time", "")
+
+        if not date or not name or not bedtime or not wake_time:
+            flash("Name, date, bedtime, and wake time are required.", "error")
+            return redirect(url_for("add_entry"))
+
+        try:
+            datetime.fromisoformat(date)
+        except ValueError:
+            flash("Invalid date format.", "error")
+            return redirect(url_for("add_entry"))
+
+        try:
+            duration = calculate_duration(bedtime, wake_time)
+        except ValueError:
+            flash("Invalid bedtime or wake time.", "error")
+            return redirect(url_for("add_entry"))
+
+        quality = infer_quality(duration)
+        suggestion = build_sleep_suggestion(duration)
+
+        entries = read_entries()
+        duplicate_entry = next(
+            (
+                entry
+                for entry in entries
+                if entry.get("name", "").strip().lower() == name.lower()
+                and entry.get("date") == date
+            ),
+            None,
+        )
+        if duplicate_entry:
+            flash("An entry for this name and date already exists.", "error")
+            return redirect(url_for("add_entry"))
+
+        entries.append(
+            {
+                "id": str(uuid.uuid4()),
+                "name": name,
+                "date": date,
+                "duration": duration,
+                "quality": quality,
+                "bedtime": bedtime,
+                "wake_time": wake_time,
+                "result_headline": suggestion["headline"],
+                "result_message": suggestion["message"],
+            }
+        )
+        write_entries(entries)
+        flash(
+            "Sleep entry added for {}. Duration: {} hours. Result: {}.".format(
+                name, duration, suggestion["headline"]
+            ),
+            "success",
+        )
+        return redirect(url_for("home"))
+
+    return render_template("add.html")
+
+
+@app.route("/delete/<entry_id>", methods=["POST"])
+def delete_entry(entry_id):
+    entries = read_entries()
+    new_entries = [entry for entry in entries if entry.get("id") != entry_id]
+    write_entries(new_entries)
+    flash("Entry deleted.", "success")
+    return redirect(url_for("home"))
+
+
+@app.route("/entry/<entry_id>")
+def entry_result(entry_id):
+    entries = get_sorted_entries()
+    entry = next((item for item in entries if item.get("id") == entry_id), None)
+    if not entry:
+        flash("Entry not found.", "error")
+        return redirect(url_for("home"))
+
+    suggestion = {
+        "headline": entry["result_headline"],
+        "message": entry["result_message"],
+    }
+    return render_template("entry_result.html", entry=entry, suggestion=suggestion)
+
+
+@app.route("/stats")
+def stats():
+    entries = get_sorted_entries()
+    metrics = build_dashboard_metrics(entries)
+    if entries:
+        longest = max(entries, key=lambda x: x["duration"])
+        shortest = min(entries, key=lambda x: x["duration"])
+        best_quality = max(
+            entries,
+            key=lambda x: QUALITY_SCORES.get(x["quality"], 0),
+        )
+    else:
+        longest = shortest = best_quality = None
+
+    return render_template(
+        "stats.html",
+        entries=entries,
+        longest=longest,
+        shortest=shortest,
+        best_quality=best_quality,
+        metrics=metrics,
+    )
+
+
+@app.route("/wellness")
+def wellness():
+    yoga_tips = [
+        {
+            "title": "Child's Pose for calm breathing",
+            "description": "Stay here for 1 to 2 minutes and take slow breaths to relax the back, shoulders, and nervous system.",
+        },
+        {
+            "title": "Cat-Cow to release tension",
+            "description": "Move gently for 8 to 10 rounds to ease stiffness in the spine and reduce body stress after a long day.",
+        },
+        {
+            "title": "Legs-Up-the-Wall for recovery",
+            "description": "Spend 5 minutes here in the evening to settle the body, reduce heaviness in the legs, and support relaxation.",
+        },
+    ]
+
+    meditation_tips = [
+        {
+            "title": "Box breathing for 2 minutes",
+            "description": "Inhale for 4, hold for 4, exhale for 4, hold for 4. This can quickly settle racing thoughts.",
+        },
+        {
+            "title": "Body scan before bed",
+            "description": "Move your attention slowly from head to toe and notice tension without judging it. Let each area soften.",
+        },
+        {
+            "title": "Single-point focus",
+            "description": "Choose one anchor like your breath, a sound, or a word, and gently return to it whenever your mind wanders.",
+        },
+    ]
+
+    stress_tips = [
+        "Keep a fixed wind-down routine for the last 30 minutes before sleep.",
+        "Reduce caffeine late in the day if you notice a restless mind at night.",
+        "Step away from your phone for a short period before bed to lower overstimulation.",
+        "Take a short walk, stretch, or do light yoga when stress starts building up.",
+        "Write down tomorrow's tasks so your mind does not keep rehearsing them at night.",
+    ]
+
+    return render_template(
+        "wellness.html",
+        yoga_tips=yoga_tips,
+        meditation_tips=meditation_tips,
+        stress_tips=stress_tips,
+    )
+
+
+if __name__ == "__main__":
+    app.run(debug=True, use_reloader=False)

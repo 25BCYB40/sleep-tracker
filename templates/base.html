@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}Sleep Tracker{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="site-header">
+        <a class="brand" href="{{ url_for('home') }}">
+          <span class="brand-mark">Zz</span>
+          <span>
+            <strong>Sleep Tracker</strong>
+            <small>Rest better with clear daily logs</small>
+          </span>
+        </a>
+
+        <nav class="site-nav">
+          <a href="{{ url_for('home') }}">Dashboard</a>
+          <a href="{{ url_for('add_entry') }}">Log Sleep</a>
+          <a href="{{ url_for('stats') }}">Insights</a>
+          <a href="{{ url_for('wellness') }}">Wellness Tips</a>
+        </nav>
+      </header>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-container">
+            {% for category, message in messages %}
+              <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </div>
+  </body>
+</html>

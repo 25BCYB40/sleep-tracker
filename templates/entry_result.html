@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Sleep Suggestion{% endblock %}
+{% block content %}
+  <section class="result-page">
+    <div class="result-box card">
+      <p class="eyebrow">Sleep suggestion</p>
+      <h1>{{ entry.name }}</h1>
+      <p class="result-meta">{{ entry.date }} - {{ entry.duration }} hrs - {{ entry.quality }}</p>
+      <h2>{{ suggestion.headline }}</h2>
+      <p class="result-message">{{ suggestion.message }}</p>
+
+      <div class="result-stats">
+        <div>
+          <span>Bedtime</span>
+          <strong>{{ entry.bedtime }}</strong>
+        </div>
+        <div>
+          <span>Wake time</span>
+          <strong>{{ entry.wake_time }}</strong>
+        </div>
+      </div>
+
+      <a class="button" href="{{ url_for('home') }}">OK</a>
+    </div>
+  </section>
+{% endblock %}

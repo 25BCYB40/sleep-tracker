@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Log Sleep{% endblock %}
+{% block content %}
+  <section class="form-layout">
+    <div class="form-copy">
+      <p class="eyebrow">New sleep log</p>
+      <h1>Capture how the night went while it is still fresh.</h1>
+      <p>
+        Track your duration, bedtime, wake time, and how rested you felt.
+        Small notes make it easier to connect habits with better sleep.
+      </p>
+    </div>
+
+    <form class="card sleep-form" method="post" action="{{ url_for('add_entry') }}">
+      <label>
+        Name
+        <input type="text" name="name" placeholder="Enter name" required />
+      </label>
+
+      <label>
+        Date
+        <input type="date" name="date" required />
+      </label>
+
+      <div class="field-grid">
+        <label>
+          Bedtime
+          <input type="time" name="bedtime" required />
+        </label>
+        <label>
+          Wake time
+          <input type="time" name="wake_time" required />
+        </label>
+      </div>
+
+      <label>
+        Duration
+        <input type="text" value="Calculated automatically from bedtime and wake time after save" disabled />
+      </label>
+
+      <button type="submit">Save entry</button>
+    </form>
+  </section>
+{% endblock %}

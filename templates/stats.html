@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Sleep Insights{% endblock %}
+{% block content %}
+  <section class="section-heading">
+    <div>
+      <p class="eyebrow">Longer-term view</p>
+      <h1>Sleep insights</h1>
+    </div>
+    <a class="button" href="{{ url_for('add_entry') }}">Add another night</a>
+  </section>
+
+  <section class="metric-grid">
+    <article class="card metric-card">
+      <span>Total logged</span>
+      <strong>{{ metrics.total_hours }} hrs</strong>
+      <small>Across {{ metrics.count }} nights</small>
+    </article>
+    <article class="card metric-card">
+      <span>Weekly average</span>
+      <strong>{{ metrics.weekly_average }} hrs</strong>
+      <small>Based on your latest 7 entries</small>
+    </article>
+    <article class="card metric-card">
+      <span>Recovery nights</span>
+      <strong>{{ metrics.recovery_nights }}</strong>
+      <small>Nights with at least 8 hours</small>
+    </article>
+  </section>
+
+  <section class="dashboard-grid">
+    <article class="card insight-card">
+      <h2>Highlights</h2>
+      {% if longest %}
+        <ul class="snapshot-list">
+          <li>Longest sleep: <strong>{{ longest.duration }} hrs</strong> on {{ longest.date }}</li>
+          <li>Shortest sleep: <strong>{{ shortest.duration }} hrs</strong> on {{ shortest.date }}</li>
+          <li>Best rated night: <strong>{{ best_quality.quality }}</strong> on {{ best_quality.date }}</li>
+          <li>Consistency score: <strong>{{ metrics.consistency }}%</strong></li>
+        </ul>
+      {% else %}
+        <p>No sleep data yet. Add an entry to start building insights.</p>
+      {% endif %}
+    </article>
+
+    <article class="card insight-card">
+      <h2>Quality breakdown</h2>
+      <div class="quality-bars">
+        {% for item in metrics.quality_breakdown %}
+          <div class="quality-row">
+            <span>{{ item.label }}</span>
+            <div class="bar-track">
+              <div class="bar-fill" style="width: {{ item.percent }}%"></div>
+            </div>
+            <strong>{{ item.value }}</strong>
+          </div>
+        {% endfor %}
+      </div>
+    </article>
+  </section>
+{% endblock %}

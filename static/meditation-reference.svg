@@ -1,0 +1,22 @@
+<svg width="900" height="620" viewBox="0 0 900 620" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="900" height="620" rx="36" fill="#F2F7FB"/>
+  <circle cx="174" cy="116" r="42" fill="#FFE2B9"/>
+  <circle cx="728" cy="102" r="22" fill="#D3E5EF"/>
+  <circle cx="774" cy="140" r="14" fill="#D3E5EF"/>
+  <circle cx="701" cy="158" r="10" fill="#D3E5EF"/>
+  <rect x="171" y="476" width="558" height="32" rx="16" fill="#B2D1DF"/>
+  <path d="M450 154C485.346 154 514 125.346 514 90C514 54.6538 485.346 26 450 26C414.654 26 386 54.6538 386 90C386 125.346 414.654 154 450 154Z" fill="#234E70"/>
+  <path d="M374 268C374 220.503 412.503 182 460 182H440C487.497 182 526 220.503 526 268V294H374V268Z" fill="#7DB1C7"/>
+  <path d="M381 295C413 331 428 352 450 404" stroke="#234E70" stroke-width="24" stroke-linecap="round"/>
+  <path d="M519 295C487 331 472 352 450 404" stroke="#234E70" stroke-width="24" stroke-linecap="round"/>
+  <path d="M450 404C406 388 355 392 302 430" stroke="#234E70" stroke-width="24" stroke-linecap="round"/>
+  <path d="M450 404C494 388 545 392 598 430" stroke="#234E70" stroke-width="24" stroke-linecap="round"/>
+  <path d="M304 430C277 447 249 455 215 460" stroke="#234E70" stroke-width="24" stroke-linecap="round"/>
+  <path d="M596 430C623 447 651 455 685 460" stroke="#234E70" stroke-width="24" stroke-linecap="round"/>
+  <path d="M450 186V250" stroke="#FFD9B3" stroke-width="18" stroke-linecap="round"/>
+  <path d="M348 262C379 278 403 288 426 294" stroke="#FFD9B3" stroke-width="16" stroke-linecap="round"/>
+  <path d="M552 262C521 278 497 288 474 294" stroke="#FFD9B3" stroke-width="16" stroke-linecap="round"/>
+  <text x="450" y="572" text-anchor="middle" fill="#234E70" font-size="28" font-family="Segoe UI, Arial, sans-serif" font-weight="700">
+    Calm meditation posture reference
+  </text>
+</svg>

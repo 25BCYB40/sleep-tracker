@@ -1,0 +1,20 @@
+<svg width="900" height="620" viewBox="0 0 900 620" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="900" height="620" rx="36" fill="#FFF7ED"/>
+  <circle cx="708" cy="118" r="52" fill="#F6C28B"/>
+  <path d="M118 502C196 434 292 430 370 502" stroke="#A9C5D3" stroke-width="22" stroke-linecap="round"/>
+  <path d="M522 502C600 434 696 430 774 502" stroke="#A9C5D3" stroke-width="22" stroke-linecap="round"/>
+  <rect x="146" y="486" width="610" height="34" rx="17" fill="#EAB676"/>
+  <path d="M451 148C485.242 148 513 120.242 513 86C513 51.7583 485.242 24 451 24C416.758 24 389 51.7583 389 86C389 120.242 416.758 148 451 148Z" fill="#234E70"/>
+  <path d="M448 164C489.421 164 523 197.579 523 239V271H373V239C373 197.579 406.579 164 448 164Z" fill="#F4A261"/>
+  <path d="M376 260C408 279 432 308 447 350" stroke="#234E70" stroke-width="24" stroke-linecap="round"/>
+  <path d="M520 260C488 279 464 308 449 350" stroke="#234E70" stroke-width="24" stroke-linecap="round"/>
+  <path d="M447 350C399 338 343 350 294 394" stroke="#234E70" stroke-width="24" stroke-linecap="round"/>
+  <path d="M449 350C497 338 553 350 602 394" stroke="#234E70" stroke-width="24" stroke-linecap="round"/>
+  <path d="M293 394C253 429 214 447 168 458" stroke="#234E70" stroke-width="24" stroke-linecap="round"/>
+  <path d="M603 394C643 429 682 447 728 458" stroke="#234E70" stroke-width="24" stroke-linecap="round"/>
+  <path d="M392 228C417 249 432 277 438 307" stroke="#FFD9B3" stroke-width="16" stroke-linecap="round"/>
+  <path d="M504 228C479 249 464 277 458 307" stroke="#FFD9B3" stroke-width="16" stroke-linecap="round"/>
+  <text x="450" y="572" text-anchor="middle" fill="#234E70" font-size="28" font-family="Segoe UI, Arial, sans-serif" font-weight="700">
+    Gentle seated yoga reference
+  </text>
+</svg>

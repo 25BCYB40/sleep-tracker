@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Wellness Tips{% endblock %}
+{% block content %}
+  <section class="section-heading">
+    <div>
+      <p class="eyebrow">Mind and body support</p>
+      <h1>Yoga, meditation, and stress relief tips</h1>
+    </div>
+    <a class="button" href="{{ url_for('home') }}">Back to dashboard</a>
+  </section>
+
+  <section class="dashboard-grid wellness-grid">
+    <article class="card insight-card">
+      <h2>Yoga for better mental health</h2>
+      <figure class="reference-figure">
+        <img src="{{ url_for('static', filename='yoga-reference.svg') }}" alt="Reference illustration for a gentle seated yoga posture" />
+        <figcaption>Use this as a simple visual reference for calm evening stretching and gentle posture work.</figcaption>
+      </figure>
+      <div class="tip-list">
+        {% for tip in yoga_tips %}
+          <div class="tip-card">
+            <strong>{{ tip.title }}</strong>
+            <p>{{ tip.description }}</p>
+          </div>
+        {% endfor %}
+      </div>
+    </article>
+
+    <article class="card insight-card">
+      <h2>Meditation practices</h2>
+      <figure class="reference-figure">
+        <img src="{{ url_for('static', filename='meditation-reference.svg') }}" alt="Reference illustration for a calm meditation posture" />
+        <figcaption>Use this posture as a guide for breath focus, body scan practice, or short quiet sits.</figcaption>
+      </figure>
+      <div class="tip-list">
+        {% for tip in meditation_tips %}
+          <div class="tip-card">
+            <strong>{{ tip.title }}</strong>
+            <p>{{ tip.description }}</p>
+          </div>
+        {% endfor %}
+      </div>
+    </article>
+  </section>
+
+  <section class="card insight-card">
+    <h2>Tips to reduce stress</h2>
+    <div class="stress-list">
+      {% for tip in stress_tips %}
+        <div class="stress-item">
+          <span class="stress-index">{{ loop.index }}</span>
+          <p>{{ tip }}</p>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+{% endblock %}
